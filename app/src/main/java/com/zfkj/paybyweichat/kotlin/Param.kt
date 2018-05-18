@@ -7,7 +7,16 @@ package com.zfkj.paybyweichat.kotlin
  * 创建时间：2018/5/18 15:10
  * 邮箱:814326663@qq.com
  */
-class Param(key: String, value: String) {
-    var key: String? = null
-    var value: String? = null
+data class Param(val key: String,val value: String) {
+    override fun hashCode(): Int {
+        return super.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return super.equals(other)
+    }
+
+    override fun toString(): String {
+        return super.toString()
+    }
 }

@@ -1,0 +1,13 @@
+package com.zfkj.paybyweichat.kotlin
+
+/**
+ * 项目名称：PayByWeiChat
+ * 类描述：Param 描述:
+ * 创建人：songlijie
+ * 创建时间：2018/5/18 15:10
+ * 邮箱:814326663@qq.com
+ */
+class Param(key: String, value: String) {
+    var key: String? = null
+    var value: String? = null
+}

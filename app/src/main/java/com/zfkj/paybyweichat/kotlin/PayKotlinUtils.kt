@@ -8,10 +8,10 @@ import com.alibaba.fastjson.JSONObject
 import com.tencent.mm.opensdk.modelpay.PayReq
 import com.tencent.mm.opensdk.openapi.WXAPIFactory
 import com.zfkj.paybyweichat.kotlin.LoggerUtils
+import com.zfkj.paybyweichat.kotlin.OkHttpUtils
+import com.zfkj.paybyweichat.kotlin.Param
 import com.zfkj.paybyweichat.kotlin.TestConfigs
 import com.zfkj.paybyweichat.utils.CommonUtils
-import com.zfkj.paybyweichat.utils.OkHttpUtils
-import com.zfkj.paybyweichat.utils.Param
 import java.util.ArrayList
 
 object PayKotlinUtils {
@@ -48,9 +48,10 @@ object PayKotlinUtils {
             val params = ArrayList<Param>()
             params.add(Param("userId", "1008611"))
             params.add(Param("amount", amount))
-            OkHttpUtils(aty).post(params, TestConfigs.PAY_BY_WECHAT, object : OkHttpUtils.HttpCallBack {
+            OkHttpUtils.init(aty)
+            OkHttpUtils.post(params, TestConfigs.PAY_BY_WECHAT, object : OkHttpUtils.HttpCallBack {
                 override fun onResponse(jsonObject: JSONObject) {
-                    LoggerUtils.e("请求服务器下来的结果:"+jsonObject.toJSONString())
+                    LoggerUtils.e("请求服务器下来的结果:" + jsonObject.toJSONString())
                     val code = jsonObject.getIntValue("code")
                     when (code) {
                         1 -> {

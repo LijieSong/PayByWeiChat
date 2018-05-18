@@ -7,7 +7,6 @@ import android.os.Message
 import com.alibaba.fastjson.JSONException
 import com.alibaba.fastjson.JSONObject
 import com.zfkj.paybyweichat.utils.CommonUtils
-import com.zfkj.paybyweichat.utils.Param
 import okhttp3.*
 import java.io.File
 import java.io.FileOutputStream
@@ -17,14 +16,14 @@ import java.util.concurrent.TimeUnit
 
 /**
  * 项目名称：PayByWeiChat
- * 类描述：OkHttpUitls 描述:
+ * 类描述：OkHttpUtils 描述:
  * 创建人：songlijie
- * 创建时间：2018/5/18 14:51
+ * 创建时间：2018/5/18 15:05
  * 邮箱:814326663@qq.com
  */
-object OkHttpUitls {
-    private var mContext: Context? = null
-    private var okHttpClient: OkHttpClient? = null
+object OkHttpUtils {
+    private var context: Context?=null
+    private var okHttpClient: OkHttpClient?=null
     private val RESULT_ERROR = 1000
     private val RESULT_SUCESS = 2000
     private val RESULT_SUCESS_FROM_GET = 3000
@@ -66,13 +65,12 @@ object OkHttpUitls {
         }
     }
 
-    fun OkHttpUitls(context: Context) {
-        this.mContext = context
+    fun init(context: Context){
+        this.context = context
         okHttpClient = OkHttpClient.Builder()
                 .connectTimeout(15000L, TimeUnit.MILLISECONDS)
                 .readTimeout(15000L, TimeUnit.MILLISECONDS)
                 .build()
-
     }
 
 
@@ -94,6 +92,100 @@ object OkHttpUitls {
 
     }
 
+    //键值对+文件 post请求
+    fun post(params: List<Param>, files: List<File>, url: String, httpCallBack: HttpCallBack) {
+        LoggerUtils.e("url----->" + url)
+        this.httpCallBack = httpCallBack
+        val builder = MultipartBody.Builder()
+        builder.setType(MultipartBody.FORM)
+        for (param in params) {
+
+            builder.addPart(Headers.of("Content-Disposition", "form-data; name=\"" + param.key + "\""), RequestBody.create(MediaType.parse(guessMimeType(param.key!!)), param.value))
+            LoggerUtils.e("param.getKey()----->" + param.key)
+            LoggerUtils.e("param.getValue()----->" + param.value)
+        }
+        for (file in files) {
+            if (file != null && file.exists()) {
+
+                //TODO-本项目固化文件的键名为“file”
+                builder.addPart(Headers.of("Content-Disposition",
+                        "form-data; name=\"" + "file" + "\"; filename=\"" + file.name + "\""),
+                        RequestBody.create(MediaType.parse(guessMimeType(file.name)), file))
+
+                LoggerUtils.e("file.getName()----->" + file.name)
+            }
+
+        }
+        val requestBody = builder.build()
+        val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build()
+
+        startRequest(request)
+
+    }
+
+    //键值对+文件 post请求
+    fun postMoments(params: MutableList<Param>, userId: String, images: List<Uri>, url: String, httpCallBack: HttpCallBack) {
+        LoggerUtils.e("url----->" + url)
+        this.httpCallBack = httpCallBack
+        val builder = MultipartBody.Builder()
+        builder.setType(MultipartBody.FORM)
+
+        val num = images.size
+        var imageStr = "0"
+        for (i in 0..num - 1) {
+            val imageUrl = images[i].path
+            val filename = imageUrl.substring(imageUrl
+                    .lastIndexOf("/") + 1)
+
+            val file = File("/sdcard/logichat/" + filename)
+
+            val file_big = File("/sdcard/logichat/" + "big_" + filename)
+
+            //            if (file.exists() && file_big.exists()) {
+            //                Log.e("imageStr_ok---->>>>>>.", "ffffff");
+            //            } else {
+            //                Log.e("imageStr_ok---->>>>>>.", "ggggggg");
+            //            }
+            //            // 小图
+            builder.addPart(Headers.of("Content-Disposition",
+                    "form-data; name=\"" + "file_" + i.toString() + "\"; filename=\"" + file.name + "\""),
+                    RequestBody.create(MediaType.parse(guessMimeType(file.name)), file))
+
+
+            // 大图
+            builder.addPart(Headers.of("Content-Disposition",
+                    "form-data; name=\"" + "file_" + i.toString() + "_big" + "\"; filename=\"" + file_big.name + "\""),
+                    RequestBody.create(MediaType.parse(guessMimeType(file_big.name)), file_big))
+
+            if (i == 0) {
+                imageStr = filename
+            } else {
+                imageStr = imageStr + "split" + filename
+                LoggerUtils.e("imageStr----->" + imageStr)
+            }
+        }
+        params.add(Param("num", images.size.toString()))
+        params.add(Param("imageStr", imageStr))
+        params.add(Param("userID", userId))
+        for (param in params) {
+
+            builder.addPart(Headers.of("Content-Disposition", "form-data; name=\"" + param.key + "\""), RequestBody.create(MediaType.parse(guessMimeType(param.key!!)), param.value))
+            LoggerUtils.e("param.getKey()----->" + param.key)
+            LoggerUtils.e("param.getValue()----->" + param.value)
+        }
+        val requestBody = builder.build()
+        val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build()
+
+        startRequest(request)
+
+    }
+
     /**
      * get请求
      * @param url
@@ -105,7 +197,7 @@ object OkHttpUitls {
         val request = Request.Builder()
                 .url(url)
                 .build()
-        if (CommonUtils.isNetWorkConnected(mContext)) {
+        if (CommonUtils.isNetWorkConnected(context)) {
             okHttpClient!!.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     val message = handler.obtainMessage()
@@ -125,13 +217,13 @@ object OkHttpUitls {
                 }
             })
         } else {
-            CommonUtils.showToastShort(mContext, "网络出错,请检查网络设置")
+            CommonUtils.showToastShort(context, "网络出错,请检查网络设置")
         }
     }
 
 
     private fun startRequest(request: Request) {
-        if (CommonUtils.isNetWorkConnected(mContext)) {
+        if (CommonUtils.isNetWorkConnected(context)) {
             okHttpClient!!.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     val message = handler.obtainMessage()
@@ -149,7 +241,7 @@ object OkHttpUitls {
                 }
             })
         } else {
-            CommonUtils.showToastShort(mContext, "网络出错,请检查网络设置")
+            CommonUtils.showToastShort(context, "网络出错,请检查网络设置")
         }
     }
 
@@ -303,5 +395,4 @@ object OkHttpUitls {
                 .build()
         startRequest(request)
     }
-
 }
